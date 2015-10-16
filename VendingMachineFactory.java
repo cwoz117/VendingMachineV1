@@ -3,24 +3,23 @@ package ca.ucalgary.seng301.myvendingmachine;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
+
 
 import ca.ucalgary.seng301.vendingmachine.*;
 import ca.ucalgary.seng301.vendingmachine.hardware.*;
 import ca.ucalgary.seng301.vendingmachine.parser.*;
 
 
-public class VendingMachineFactory implements IVendingMachineFactory {
+public class VendingMachineFactory implements IVendingMachineFactory{
 
 	private VendingMachine vm;
-	private int[] coinLocation;
+	private HardwareObserver ho;
 	
 	public static void main(String[] args) throws ParseException, FileNotFoundException {
 		int count = 0;
 		// TODO Modify this initializer to run your own good scripts
-		String[] goodScripts = { "good-script" };
+		String[] goodScripts = { "good-script", "myTestScript" };
 
 		for (String script : goodScripts) {
 			try {
@@ -45,7 +44,8 @@ public class VendingMachineFactory implements IVendingMachineFactory {
 		}
 		System.err.println(count + " scripts executed");
 	}
-	public VendingMachineFactory(String path) throws ParseException, FileNotFoundException, DisabledException {
+	public VendingMachineFactory(String path) throws ParseException, 
+											  FileNotFoundException, DisabledException {
 		Parser p = new Parser(new FileReader(path));
 		p.register(this);
 		p.setDebug(true);
@@ -56,10 +56,18 @@ public class VendingMachineFactory implements IVendingMachineFactory {
 	public List<Object> extract() {
 		Object[] product = vm.getDeliveryChute().removeItems();
 		List<Object> output= new ArrayList<Object>();
-		System.out.println(product.length);
 		for (int i = 0; i < product.length; i++){
-			output.add(product[i]);
-			System.out.println(product[i]);
+			Class<? extends Object> cls = product[i].getClass();
+			if (cls.getSimpleName().equals("Coin")){
+				output.add(((Coin)product[i]).getValue());
+				System.out.println(((Coin)product[i]).getValue());
+			} else {
+				output.add(((PopCan)product[i]).getName());
+				System.out.println(((PopCan)product[i]).getName());
+			}
+		}
+		for (int i = 0; i < output.size(); i++){
+			System.out.println(output.get(i).toString());
 		}
 		return output;
 	}
@@ -69,21 +77,26 @@ public class VendingMachineFactory implements IVendingMachineFactory {
 			throw new IllegalArgumentException("Cannont insert a non-positive coin");
 		}
 		vm.getCoinSlot().addCoin(new Coin(value));
-
 	}
 	@Override
 	public void press(int value) {
+		if ((value < 0) || (value >= vm.getNumberOfSelectionButtons())){
+			throw new IllegalArgumentException("Pressed an invalid button");
+		}
 		vm.getSelectionButton(value).press();
 	}
 	@Override
 	public void construct(List<Integer> coinKinds, int selectionButtonCount, int coinRackCapacity,
 			int popCanRackCapacity, int receptacleCapacity) {		
 		
-		coinLocation = new int[coinKinds.size()];
+		int[] coinLocation = new int[coinKinds.size()];
 		for (int i = 0; i< coinLocation.length; i++){
 			coinLocation[i] = coinKinds.get(i);
 		}
-		vm = new VendingMachine(coinLocation, selectionButtonCount, coinRackCapacity, popCanRackCapacity, receptacleCapacity);
+		vm = new VendingMachine(coinLocation, selectionButtonCount, coinRackCapacity, 
+												popCanRackCapacity, receptacleCapacity);
+		ho = new HardwareObserver(vm);
+		
 	}
 	@Override
 	public void configure(List<String> popNames, List<Integer> popCosts) {
@@ -109,6 +122,7 @@ public class VendingMachineFactory implements IVendingMachineFactory {
 				vm.getPopCanRack(i).loadWithoutEvents(new PopCan(vm.getPopKindName(i)));
 			}
 		}
+
 	}
 	@Override
 	public VendingMachineStoredContents unload() {
