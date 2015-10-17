@@ -10,16 +10,16 @@ import ca.ucalgary.seng301.vendingmachine.*;
 import ca.ucalgary.seng301.vendingmachine.hardware.*;
 import ca.ucalgary.seng301.vendingmachine.parser.*;
 
-
 public class VendingMachineFactory implements IVendingMachineFactory{
 
 	private VendingMachine vm;
-	private HardwareObserver ho;
+	@SuppressWarnings("unused")		// This object is referenced FROM observer, thus is being used.
+	private HardwareObserver observer;
 	
 	public static void main(String[] args) throws ParseException, FileNotFoundException {
 		int count = 0;
 		// TODO Modify this initializer to run your own good scripts
-		String[] goodScripts = { "good-script", "myTestScript" };
+		String[] goodScripts = { "good-script"};
 
 		for (String script : goodScripts) {
 			try {
@@ -57,17 +57,7 @@ public class VendingMachineFactory implements IVendingMachineFactory{
 		Object[] product = vm.getDeliveryChute().removeItems();
 		List<Object> output= new ArrayList<Object>();
 		for (int i = 0; i < product.length; i++){
-			Class<? extends Object> cls = product[i].getClass();
-			if (cls.getSimpleName().equals("Coin")){
-				output.add(((Coin)product[i]).getValue());
-				System.out.println(((Coin)product[i]).getValue());
-			} else {
-				output.add(((PopCan)product[i]).getName());
-				System.out.println(((PopCan)product[i]).getName());
-			}
-		}
-		for (int i = 0; i < output.size(); i++){
-			System.out.println(output.get(i).toString());
+			output.add(product[i]);
 		}
 		return output;
 	}
@@ -95,7 +85,7 @@ public class VendingMachineFactory implements IVendingMachineFactory{
 		}
 		vm = new VendingMachine(coinLocation, selectionButtonCount, coinRackCapacity, 
 												popCanRackCapacity, receptacleCapacity);
-		ho = new HardwareObserver(vm);
+		observer = new HardwareObserver(vm);
 		
 	}
 	@Override
